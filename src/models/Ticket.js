@@ -2,13 +2,13 @@ import mongoose from "mongoose";
 const ticketSchema = new mongoose.Schema({
     title:{
         type:String,
-        required:true,
+        required:[true,'required'],
         minlength:[5],
         maxlength:[200]
     },
     description:{
         type:String,
-        required:true,
+        required:[true,'required'],
         minlength:[10],
         maxlength:[5000]
     },
