@@ -1,51 +1,108 @@
 import Ticket from "../models/Ticket.js";
+import Comment from "../models/comment.js";
 
-export const getTickets = async (req, res) => {
+export const getTickets = async (req, res, next) => {
     try {
-        let query;
+        let queryObj = {};
 
-        // If user is a customer, only show their tickets
+        // 1. Role-based access control
         if (req.user.role === 'customer') {
-            query = Ticket.find({ createdBy: req.user.id });
-        } else {
-            // Agents and Admins see all tickets
-            query = Ticket.find();
+            queryObj.createdBy = req.user.id;
         }
 
-        const tickets = await query.populate('createdBy', 'username email');
+        // 2. Text Search
+        if (req.query.search) {
+            queryObj.$text = { $search: req.query.search };
+        }
+
+        // 3. Filters
+        if (req.query.status) queryObj.status = req.query.status;
+        if (req.query.priority) queryObj.priority = req.query.priority.charAt(0).toUpperCase() + req.query.priority.slice(1).toLowerCase();
+        if (req.query.tag) queryObj.tags = req.query.tag;
+
+        // 4. Date Range Filter
+        if (req.query.from || req.query.to) {
+            queryObj.createdAt = {};
+            if (req.query.from) queryObj.createdAt.$gte = new Date(req.query.from);
+            if (req.query.to) queryObj.createdAt.$lte = new Date(req.query.to);
+        }
+
+        // 5. Pagination & Sorting
+        const page = parseInt(req.query.page, 10) || 1;
+        const limit = Math.min(parseInt(req.query.limit, 10) || 10, 50);
+        const skip = (page - 1) * limit;
+
+        const total = await Ticket.countDocuments(queryObj);
+        const pages = Math.ceil(total / limit);
+
+        const tickets = await Ticket.find(queryObj)
+            .sort({ createdAt: -1 }) // Default sort newest first
+            .skip(skip)
+            .limit(limit)
+            .populate('createdBy', 'username email')
+            .populate('assignedTo', 'username email');
 
         res.status(200).json({
             success: true,
-            count: tickets.length,
-            data: tickets
+            data: {
+                tickets,
+                page,
+                limit,
+                total,
+                pages
+            }
         });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        next(error);
     }
 };
 
-export const getTicket = async (req, res) => {
+export const getTicket = async (req, res, next) => {
     try {
-        const ticket = await Ticket.findById(req.params.id).populate('createdBy', 'username email');
+        const ticket = await Ticket.findById(req.params.id)
+            .populate('createdBy', 'username email')
+            .populate('assignedTo', 'username email');
 
         if (!ticket) {
-            return res.status(404).json({ success: false, message: "Ticket not found" });
+            res.status(404);
+            throw new Error("Ticket not found");
         }
 
-        // Check if user is authorized to see this ticket
-        if (req.user.role === 'customer' && ticket.createdBy.toString() !== req.user.id) {
-            return res.status(401).json({ success: false, message: "Not authorized to access this ticket" });
+        // Customer can only see their own tickets
+        if (req.user.role === 'customer' && ticket.createdBy._id.toString() !== req.user.id) {
+            res.status(401);
+            throw new Error("Not authorized to access this ticket");
         }
 
-        res.status(200).json({ success: true, data: ticket });
+        // Fetch comments
+        let commentQuery = { ticketId: req.params.id };
+        // Customer cannot see internal notes
+        if (req.user.role === 'customer') {
+            commentQuery.type = 'public';
+        }
+
+        const comments = await Comment.find(commentQuery)
+            .populate('createdBy', 'username email')
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({
+            success: true,
+            data: {
+                ...ticket._doc,
+                comments
+            }
+        });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        next(error);
     }
 };
 
-export const createTicket = async (req, res) => {
+export const createTicket = async (req, res, next) => {
     try {
         req.body.createdBy = req.user.id;
+
+        // Ensure initial status is open
+        delete req.body.status;
 
         const ticket = await Ticket.create(req.body);
 
@@ -54,21 +111,53 @@ export const createTicket = async (req, res) => {
             data: ticket
         });
     } catch (error) {
-        res.status(400).json({ success: false, message: error.message });
+        next(error);
     }
 };
 
-export const updateTicket = async (req, res) => {
+export const updateTicket = async (req, res, next) => {
     try {
         let ticket = await Ticket.findById(req.params.id);
 
         if (!ticket) {
-            return res.status(404).json({ success: false, message: "Ticket not found" });
+            res.status(404);
+            throw new Error("Ticket not found");
         }
 
-        // Check ownership or role
+        // 1. Ownership/Permission check
         if (req.user.role === 'customer' && ticket.createdBy.toString() !== req.user.id) {
-            return res.status(401).json({ success: false, message: "Not authorized to update this ticket" });
+            res.status(401);
+            throw new Error("Not authorized to update this ticket");
+        }
+
+        // 2. Status Transition Validation
+        if (req.body.status && req.body.status !== ticket.status) {
+            const from = ticket.status;
+            const to = req.body.status;
+
+            const validTransitions = {
+                'open': ['in_progress'],
+                'in_progress': ['resolved'],
+                'resolved': ['closed', 'in_progress'],
+                'closed': []
+            };
+
+            if (!validTransitions[from].includes(to)) {
+                res.status(400);
+                throw new Error(`Invalid status transition from ${from} to ${to}`);
+            }
+
+            // Only Agent/Admin can change status
+            if (req.user.role === 'customer') {
+                res.status(403);
+                throw new Error("Customers cannot change ticket status");
+            }
+        }
+
+        // 3. Assignment Check
+        if (req.body.assignedTo && req.user.role === 'customer') {
+            res.status(403);
+            throw new Error("Customers cannot assign tickets");
         }
 
         ticket = await Ticket.findByIdAndUpdate(req.params.id, req.body, {
@@ -76,29 +165,37 @@ export const updateTicket = async (req, res) => {
             runValidators: true
         });
 
-        res.status(200).json({ success: true, data: ticket });
+        res.status(200).json({
+            success: true,
+            data: ticket
+        });
     } catch (error) {
-        res.status(400).json({ success: false, message: error.message });
+        next(error);
     }
 };
 
-export const deleteTicket = async (req, res) => {
+export const deleteTicket = async (req, res, next) => {
     try {
         const ticket = await Ticket.findById(req.params.id);
 
         if (!ticket) {
-            return res.status(404).json({ success: false, message: "Ticket not found" });
+            res.status(404);
+            throw new Error("Ticket not found");
         }
 
-        // Authorized?
         if (req.user.role === 'customer' && ticket.createdBy.toString() !== req.user.id) {
-            return res.status(401).json({ success: false, message: "Not authorized to delete this ticket" });
+            res.status(401);
+            throw new Error("Not authorized to delete this ticket");
         }
 
         await ticket.deleteOne();
 
-        res.status(200).json({ success: true, data: {} });
+        res.status(200).json({
+            success: true,
+            data: null
+        });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        next(error);
     }
 };
+

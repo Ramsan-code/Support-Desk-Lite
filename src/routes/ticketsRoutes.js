@@ -24,4 +24,12 @@ router
     .put(updateTicket)
     .delete(deleteTicket);
 
+// Comments nested routes
+import { addComment, getComments } from '../controllers/commentController.js';
+
+router
+    .route('/:id/comments')
+    .post(addComment)
+    .get(getComments);
+
 export default router;

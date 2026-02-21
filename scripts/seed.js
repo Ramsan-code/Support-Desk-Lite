@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import User from '../src/models/User.js';
 import Ticket from '../src/models/Ticket.js';
+import Comment from '../src/models/comment.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,17 +12,17 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const users = [
-    { username: 'admin_user', email: 'admin@example.com', password: 'password123', role: 'admin' },
-    { username: 'agent_smith', email: 'agent@example.com', password: 'password123', role: 'agent' },
-    { username: 'customer_john', email: 'john@example.com', password: 'password123', role: 'customer' },
-    { username: 'customer_jane', email: 'jane@example.com', password: 'password123', role: 'customer' },
+    { name: 'Admin User', username: 'admin_user', email: 'admin@example.com', password: 'password123', role: 'admin' },
+    { name: 'Agent Smith', username: 'agent_smith', email: 'agent@example.com', password: 'password123', role: 'agent' },
+    { name: 'John Doe', username: 'customer_john', email: 'john@example.com', password: 'password123', role: 'customer' },
+    { name: 'Jane Doe', username: 'customer_jane', email: 'jane@example.com', password: 'password123', role: 'customer' },
 ];
 
 const tickets = [
-    { title: 'abc', description: 'loream .', priority: 'High', status: 'open' },
-    { title: 'Printer paper jam', description: 'loreamqwert.', priority: 'Low', status: 'open' },
-    { title: 'VPN Connection drops', description: 'loreammaeral.', priority: 'Medium', status: 'in_progress' },
-    { title: 'New laptop request', description: 'loreamnjiyue', priority: 'Medium', status: 'resolved' },
+    { title: 'Website is down', description: 'The corporate website is returning 500 errors since this morning.', priority: 'High', status: 'open' },
+    { title: 'Printer paper jam', description: 'The printer on the 3rd floor is jammed again. Needs immediate attention.', priority: 'Low', status: 'open' },
+    { title: 'VPN Connection drops', description: 'My VPN connection drops every 5 minutes when working from home.', priority: 'Medium', status: 'in_progress' },
+    { title: 'New laptop request', description: 'I need a new laptop for development as my current one is quite old.', priority: 'Medium', status: 'resolved' },
 ];
 
 const seedData = async () => {
@@ -30,15 +31,13 @@ const seedData = async () => {
         if (!process.env.MONGO_URI) throw new Error('MONGO_URI is not defined');
 
         console.log('Connecting to MongoDB...');
-        client = await mongoose.connect(process.env.MONGO_URI, {
-            serverSelectionTimeoutMS: 15000,
-        });
+        client = await mongoose.connect(process.env.MONGO_URI);
 
         console.log('Connection successful. Clearing data...');
 
-        // Use the actual models
         await User.deleteMany({});
         await Ticket.deleteMany({});
+        await Comment.deleteMany({});
 
         console.log('Seeding users...');
         const createdUsers = await User.insertMany(users);
@@ -56,7 +55,17 @@ const seedData = async () => {
             return { ...t, createdBy: jane._id, assignedTo: agent._id };
         });
 
-        await Ticket.insertMany(ticketsWithLinks);
+        const createdTickets = await Ticket.insertMany(ticketsWithLinks);
+
+        console.log('Seeding comments...');
+        const comments = [
+            { body: 'I will look into this immediately.', type: 'public', ticketId: createdTickets[0]._id, createdBy: agent._id },
+            { body: 'Checking logs now. Internal note: Server memory is low.', type: 'internal', ticketId: createdTickets[0]._id, createdBy: agent._id },
+            { body: 'Restarted the server, please check now.', type: 'public', ticketId: createdTickets[0]._id, createdBy: agent._id },
+            { body: 'Thanks, it is working now!', type: 'public', ticketId: createdTickets[0]._id, createdBy: john._id },
+        ];
+
+        await Comment.insertMany(comments);
 
         console.log('Seeding complete!');
     } catch (error) {
@@ -68,3 +77,4 @@ const seedData = async () => {
 };
 
 seedData();
+
