@@ -99,11 +99,14 @@ export const login = async (req, res, next) => {
 export const getUsers = async (req, res, next) => {
   try {
     const users = await User.find().select("-password");
-    res.status(200).json({
-      success: true,
-      data: users,
-      error: null
-    });
+    res.status(200).json(users.map(u => ({
+      id: u._id,
+      name: u.name,
+      username: u.username,
+      email: u.email,
+      role: u.role,
+      createdAt: u.createdAt
+    })));
   } catch (error) {
     next(error);
   }
@@ -119,9 +122,12 @@ export const getUserById = async (req, res, next) => {
     }
 
     res.status(200).json({
-      success: true,
-      data: user,
-      error: null
+      id: user._id,
+      name: user.name,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      createdAt: user.createdAt
     });
   } catch (error) {
     next(error);
@@ -142,9 +148,12 @@ export const updateUser = async (req, res, next) => {
     }
 
     res.status(200).json({
-      success: true,
-      data: user,
-      error: null
+      id: user._id,
+      name: user.name,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      createdAt: user.createdAt
     });
   } catch (error) {
     next(error);
@@ -163,9 +172,7 @@ export const deleteUser = async (req, res, next) => {
     await user.deleteOne();
 
     res.status(200).json({
-      success: true,
-      data: null,
-      error: null
+      message: "User deleted successfully"
     });
   } catch (error) {
     next(error);

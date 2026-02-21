@@ -14,9 +14,7 @@ export const protect = async (req, res, next) => {
 
     if (!token) {
         return res.status(401).json({
-            success: false,
-            data: null,
-            error: 'Not authorized, no token',
+            message: 'Not authorized, no token',
         });
     }
 
@@ -29,18 +27,14 @@ export const protect = async (req, res, next) => {
 
         if (!req.user) {
             return res.status(401).json({
-                success: false,
-                data: null,
-                error: 'User no longer exists',
+                message: 'User no longer exists',
             });
         }
 
         next();
     } catch (error) {
         return res.status(401).json({
-            success: false,
-            data: null,
-            error: 'Not authorized to access this route',
+            message: 'Not authorized to access this route',
         });
     }
 };
@@ -50,9 +44,7 @@ export const authorize = (...roles) => {
     return (req, res, next) => {
         if (!roles.includes(req.user.role)) {
             return res.status(403).json({
-                success: false,
-                data: null,
-                error: `User role ${req.user.role} is not authorized to access this route`,
+                message: `User role ${req.user.role} is not authorized to access this route`,
             });
         }
         next();

@@ -21,7 +21,7 @@ const users = [
 const tickets = [
     { title: 'Website is down', description: 'The corporate website is returning 500 errors since this morning.', priority: 'High', status: 'open' },
     { title: 'Printer paper jam', description: 'The printer on the 3rd floor is jammed again. Needs immediate attention.', priority: 'Low', status: 'open' },
-    { title: 'VPN Connection drops', description: 'My VPN connection drops every 5 minutes when working from home.', priority: 'Medium', status: 'in_progress' },
+    { title: 'VPN Connection drops', description: 'My VPN connection drops every 5 minutes when working from home.', priority: 'Medium', status: 'in-progress' },
     { title: 'New laptop request', description: 'I need a new laptop for development as my current one is quite old.', priority: 'Medium', status: 'resolved' },
 ];
 
@@ -40,7 +40,7 @@ const seedData = async () => {
         await Comment.deleteMany({});
 
         console.log('Seeding users...');
-        const createdUsers = await User.insertMany(users);
+        const createdUsers = await User.create(users);
 
         const john = createdUsers.find(u => u.username === 'customer_john');
         const jane = createdUsers.find(u => u.username === 'customer_jane');

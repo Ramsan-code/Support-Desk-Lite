@@ -89,7 +89,9 @@ export const getTicket = async (req, res, next) => {
             id: ticket._id,
             ...ticket._doc,
             ownerId: ticket.createdBy?._id || ticket.createdBy,
+            ownerName: ticket.createdBy?.username || 'Unknown',
             assigneeId: ticket.assignedTo?._id || ticket.assignedTo,
+            assigneeName: ticket.assignedTo?.username || 'Unassigned',
             comments: comments.map(c => ({
                 id: c._id,
                 ...c._doc,
