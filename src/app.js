@@ -31,8 +31,6 @@ const connectDB = async () => {
     }
 };
 
-connectDB();
-
 app.get("/", (req, res) => {
     res.send("Hello World");
 });
@@ -43,6 +41,11 @@ app.use("/api/users", usersRoutes);
 
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-    console.log(`Server is running on port http://localhost:${PORT}`);
-});
+const startServer = async () => {
+    await connectDB();
+    app.listen(PORT, () => {
+        console.log(`Server is running on port http://localhost:${PORT}`);
+    });
+};
+
+startServer();
