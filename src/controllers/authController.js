@@ -1,4 +1,13 @@
 import User from "../models/User.js";
+import jwt from "jsonwebtoken";
+
+// Helper to get signed token
+const getSignedJwtToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_SECRET, {
+    expiresIn: "30d",
+  });
+};
+
 
 // Register a new user
 export const register = async (req, res) => {
@@ -25,9 +34,13 @@ export const register = async (req, res) => {
       role: role || 'admin'
     });
 
+    // Create token
+    const token = getSignedJwtToken(user._id);
+
     res.status(201).json({
       success: true,
       message: "User registered successfully",
+      token,
       user: {
         id: user._id,
         username: user.username,
@@ -72,9 +85,13 @@ export const login = async (req, res) => {
       });
     }
 
+    // Create token
+    const token = getSignedJwtToken(user._id);
+
     res.status(200).json({
       success: true,
       message: "Login successful",
+      token,
       user: {
         id: user._id,
         username: user.username,
