@@ -2,37 +2,38 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
 
 const userSchema = new mongoose.Schema({
-    name: {
+    username: {
         type: String,
-        required: [true, 'missing your name'],
+        required: [true, 'Please provide a username'],
+        unique: true,
     },
     email: {
         type: String,
-        required: [true, 'missing your email'],
+        required: [true, 'Please provide an email'],
         unique: true,
         match: [
             /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
-            ' missing your email',
+            'Please provide a valid email',
         ],
     },
     password: {
         type: String,
-        required: [true, 'not match your password'],
+        required: [true, 'Please provide a password'],
         minlength: 6,
         select: false,
     },
     role: {
         type: String,
-        enum: ['Customer', 'Agent', 'Admin'],
-        default: 'Customer',
+        enum: ['customer', 'agent', 'admin'],
+        default: 'customer',
     },
 }, {
     timestamps: true,
 });
 
-userSchema.pre('save', async function (next) {
+userSchema.pre('save', async function () {
     if (!this.isModified('password')) {
-        next();
+        return;
     }
 
     const salt = await bcrypt.genSalt(10);
