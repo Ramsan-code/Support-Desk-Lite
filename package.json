@@ -1,0 +1,28 @@
+{
+  "name": "support-desk-lite",
+  "version": "1.0.0",
+  "description": "create Build a",
+  "homepage": "https://github.com/Ramsan-code/support-_desk-_lite#readme",
+  "bugs": {
+    "url": "https://github.com/Ramsan-code/support-_desk-_lite/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ramsan-code/support-_desk-_lite.git"
+  },
+  "license": "MIT",
+  "author": "ramsan",
+  "type": "module",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "dependencies": {
+    "express": "^5.2.1",
+    "Express": "^3.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
