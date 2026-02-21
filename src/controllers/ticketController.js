@@ -3,6 +3,7 @@ import Comment from "../models/comment.js";
 
 export const getTickets = async (req, res, next) => {
     try {
+        console.log("getTickets called with query:", req.query);
         let queryObj = {};
 
         // 1. Role-based access control
@@ -44,8 +45,12 @@ export const getTickets = async (req, res, next) => {
 
         res.status(200).json({
             tickets: tickets.map(t => ({
-                id: t._id,
-                ...t._doc
+                ...t._doc,
+                id: t._id.toString(),
+                ownerId: t.createdBy?._id?.toString() || t.createdBy?.toString(),
+                ownerName: t.createdBy?.username || 'Unknown',
+                assigneeId: t.assignedTo?._id?.toString() || t.assignedTo?.toString(),
+                assigneeName: t.assignedTo?.username || 'Unassigned',
             })),
             page,
             limit,
