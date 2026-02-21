@@ -3,11 +3,17 @@ import {
     getUsers,
     getUserById,
     updateUser,
-    deleteUser
+    deleteUser,
+    login,
+    register
 } from '../controllers/authController.js';
 import { protect, authorize } from '../middleware/auth.js';
 
 const router = express.Router();
+
+// Public routes
+router.post('/login', login);
+router.post('/register', register);
 
 // All user management routes are restricted to Admin
 router.use(protect);

@@ -14,13 +14,13 @@ const ticketSchema = new mongoose.Schema({
     },
     priority: {
         type: String,
-        enum: ["Low", "Medium", "High"],
+        enum: ["Low", "Medium", "High", "Urgent"],
         required: true,
         set: v => v.charAt(0).toUpperCase() + v.slice(1).toLowerCase()
     },
     status: {
         type: String,
-        enum: ["open", "in_progress", "resolved", "closed"],
+        enum: ["open", "in-progress", "resolved", "closed"],
         default: "open",
         lowercase: true
     },

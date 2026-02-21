@@ -16,24 +16,30 @@ export const addComment = async (req, res, next) => {
             throw new Error('Not authorized to comment on this ticket');
         }
 
-        const { body, type } = req.body;
+        const bodyContent = req.body.body || req.body.content;
+        const commentType = req.body.type || (req.body.isInternal ? 'internal' : 'public');
 
         // Customer cannot create internal notes
-        if (req.user.role === 'customer' && type === 'internal') {
+        if (req.user.role === 'customer' && commentType === 'internal') {
             res.status(403);
             throw new Error('Customers cannot create internal notes');
         }
 
         const comment = await Comment.create({
-            body,
-            type: type || 'public',
+            body: bodyContent,
+            type: commentType,
             ticketId: req.params.id,
             createdBy: req.user.id
         });
 
         res.status(201).json({
-            success: true,
-            data: comment
+            id: comment._id,
+            ...comment._doc,
+            content: comment.body,
+            isInternal: comment.type === 'internal',
+            authorId: req.user._id,
+            authorName: req.user.username,
+            authorRole: req.user.role
         });
     } catch (error) {
         next(error);
@@ -66,10 +72,15 @@ export const getComments = async (req, res, next) => {
             .populate('createdBy', 'username email')
             .sort({ createdAt: -1 });
 
-        res.status(200).json({
-            success: true,
-            data: comments
-        });
+        res.status(200).json(comments.map(c => ({
+            id: c._id,
+            ...c._doc,
+            content: c.body,
+            isInternal: c.type === 'internal',
+            authorId: c.createdBy?._id || c.createdBy,
+            authorName: c.createdBy?.username || 'Unknown',
+            authorRole: c.createdBy?.role || 'user'
+        })));
     } catch (error) {
         next(error);
     }

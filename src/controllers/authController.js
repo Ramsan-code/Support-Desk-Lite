@@ -37,18 +37,14 @@ export const register = async (req, res, next) => {
     const token = getSignedJwtToken(user._id, user.role);
 
     res.status(201).json({
-      success: true,
-      data: {
-        token,
-        user: {
-          id: user._id,
-          name: user.name,
-          username: user.username,
-          email: user.email,
-          role: user.role
-        }
-      },
-      error: null
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        username: user.username,
+        email: user.email,
+        role: user.role
+      }
     });
   } catch (error) {
     next(error);
@@ -85,18 +81,14 @@ export const login = async (req, res, next) => {
     const token = getSignedJwtToken(user._id, user.role);
 
     res.status(200).json({
-      success: true,
-      data: {
-        token,
-        user: {
-          id: user._id,
-          name: user.name,
-          username: user.username,
-          email: user.email,
-          role: user.role
-        }
-      },
-      error: null
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        username: user.username,
+        email: user.email,
+        role: user.role
+      }
     });
   } catch (error) {
     next(error);

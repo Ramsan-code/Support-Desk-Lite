@@ -43,14 +43,14 @@ export const getTickets = async (req, res, next) => {
             .populate('assignedTo', 'username email');
 
         res.status(200).json({
-            success: true,
-            data: {
-                tickets,
-                page,
-                limit,
-                total,
-                pages
-            }
+            tickets: tickets.map(t => ({
+                id: t._id,
+                ...t._doc
+            })),
+            page,
+            limit,
+            total,
+            totalPages: pages
         });
     } catch (error) {
         next(error);
@@ -86,11 +86,19 @@ export const getTicket = async (req, res, next) => {
             .sort({ createdAt: -1 });
 
         res.status(200).json({
-            success: true,
-            data: {
-                ...ticket._doc,
-                comments
-            }
+            id: ticket._id,
+            ...ticket._doc,
+            ownerId: ticket.createdBy?._id || ticket.createdBy,
+            assigneeId: ticket.assignedTo?._id || ticket.assignedTo,
+            comments: comments.map(c => ({
+                id: c._id,
+                ...c._doc,
+                authorId: c.createdBy?._id || c.createdBy,
+                authorName: c.createdBy?.username || 'Unknown',
+                authorRole: c.createdBy?.role || 'user',
+                content: c.body,
+                isInternal: c.type === 'internal'
+            }))
         });
     } catch (error) {
         next(error);
@@ -107,8 +115,8 @@ export const createTicket = async (req, res, next) => {
         const ticket = await Ticket.create(req.body);
 
         res.status(201).json({
-            success: true,
-            data: ticket
+            id: ticket._id,
+            ...ticket._doc
         });
     } catch (error) {
         next(error);
@@ -136,9 +144,9 @@ export const updateTicket = async (req, res, next) => {
             const to = req.body.status;
 
             const validTransitions = {
-                'open': ['in_progress'],
-                'in_progress': ['resolved'],
-                'resolved': ['closed', 'in_progress'],
+                'open': ['in-progress'],
+                'in-progress': ['resolved'],
+                'resolved': ['closed', 'in-progress'],
                 'closed': []
             };
 
@@ -166,8 +174,8 @@ export const updateTicket = async (req, res, next) => {
         });
 
         res.status(200).json({
-            success: true,
-            data: ticket
+            id: ticket._id,
+            ...ticket._doc
         });
     } catch (error) {
         next(error);
@@ -191,8 +199,7 @@ export const deleteTicket = async (req, res, next) => {
         await ticket.deleteOne();
 
         res.status(200).json({
-            success: true,
-            data: null
+            message: "Ticket deleted successfully"
         });
     } catch (error) {
         next(error);

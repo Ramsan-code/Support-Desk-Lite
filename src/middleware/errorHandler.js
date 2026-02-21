@@ -10,7 +10,7 @@ const errorHandler = (err, req, res, next) => {
         return res.status(statusCode).json({
             success: false,
             data: null,
-            error: messages.join(', ')
+            message: messages.join(', ')
         });
     }
 
@@ -20,14 +20,14 @@ const errorHandler = (err, req, res, next) => {
         return res.status(statusCode).json({
             success: false,
             data: null,
-            error: 'Duplicate field value entered'
+            message: 'Duplicate field value entered'
         });
     }
 
     res.status(statusCode || 500).json({
         success: false,
         data: null,
-        error: err.message || 'Server Error'
+        message: err.message || 'Server Error'
     });
 };
 
